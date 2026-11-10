@@ -5,8 +5,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Section 08: Client Testimonials
- * Horizontal drag-scroll carousel displaying 5 luxury client review cards,
- * gold star ratings, client initials avatar, and disclaimer.
+ * 4 luxury client review cards in a 4-column side-by-side grid on desktop,
+ * with real photo avatars, gold star ratings, editorial italic quotes, and project tags.
  */
 export function initTestimonials() {
   const container = document.getElementById('testimonials');
@@ -14,50 +14,46 @@ export function initTestimonials() {
 
   const testimonials = [
     {
-      initials: 'AM',
-      name: 'Aarav Mehta',
-      city: 'Bandra, Mumbai',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&h=160&q=80',
+      initials: 'LS',
+      name: 'Lord & Lady Sterling',
+      city: 'London, UK',
       quote:
-        '“They transformed our apartment into something from a magazine. The way sunlight moves through the limestone finishes is pure poetry.”',
-      projectTag: 'Residential — Bandra, Mumbai',
+        '“AURA transformed our Mayfair penthouse into a sanctuary of warmth and timeless luxury. Their bespoke millwork and quiet light are unmatched...”',
+      projectTag: 'RESIDENTIAL — MAYFAIR, LONDON',
     },
     {
-      initials: 'PS',
-      name: 'Priya Sharma',
-      city: 'Worli, Mumbai',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&h=160&q=80',
+      initials: 'MR',
+      name: 'Marcello Rossi',
+      city: 'Lake Como, Italy',
       quote:
-        '“Absolute mastery over scale and texture. Every custom fixture feels intentional, calming, and deeply tailored to how our family lives.”',
-      projectTag: 'Residential — Worli, Mumbai',
+        '“Working with the AURA team felt like a masterclass in architectural harmony. The living room framing the lake is an absolute daily joy...”',
+      projectTag: 'VILLA ARCHITECTURE — LAKE COMO',
     },
     {
-      initials: 'RK',
-      name: 'Rohan Kapoor',
-      city: 'Lower Parel, Mumbai',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&h=160&q=80',
+      initials: 'ER',
+      name: 'Elena Rostova',
+      city: 'Paris, France',
       quote:
-        '“Our creative headquarters has become a benchmark for client hospitality. The team handled design through execution with effortless poise.”',
-      projectTag: 'Commercial — Lower Parel, Mumbai',
+        '“Flawless execution from concept drawings to the final marble island installation. Truly white-glove service throughout the renovation...”',
+      projectTag: 'HERITAGE RENOVATION — PARIS',
     },
     {
-      initials: 'ND',
-      name: 'Nisha Dalal',
-      city: 'Juhu, Mumbai',
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=160&h=160&q=80',
+      initials: 'AK',
+      name: 'Ananya Kapoor',
+      city: 'Mumbai, India',
       quote:
-        '“From raw concrete to an ethereal sanctuary. Aura Studio created spaces that bring quiet clarity at the end of every busy day.”',
-      projectTag: 'Residential — Juhu, Mumbai',
-    },
-    {
-      initials: 'VK',
-      name: 'Vikram Khurana',
-      city: 'BKC, Mumbai',
-      quote:
-        '“Impeccable acoustic balance, tailored smoked oak millwork, and refined detailing that immediately sets our advisory practice apart.”',
-      projectTag: 'Commercial — BKC, Mumbai',
+        '“They transformed our apartment into something right out of a design magazine. Every single detail feels intentional, calming, and deeply timeless...”',
+      projectTag: 'RESIDENTIAL — BANDRA, MUMBAI',
     },
   ];
 
   // SVG 5-star rating icon
   const starSvg = `
-    <svg class="testimonial-star" width="16" height="16" viewBox="0 0 16 16" fill="#C9A96E" xmlns="http://www.w3.org/2000/svg">
+    <svg class="testimonial-star" width="14" height="14" viewBox="0 0 16 16" fill="#C9A96E" xmlns="http://www.w3.org/2000/svg">
       <path d="M8 0.5L10.3 5.2L15.5 6L11.7 9.7L12.6 14.9L8 12.5L3.4 14.9L4.3 9.7L0.5 6L5.7 5.2L8 0.5Z" />
     </svg>
   `;
@@ -68,7 +64,16 @@ export function initTestimonials() {
       (item, index) => `
       <article class="testimonial-card" data-index="${index}">
         <div class="testimonial-card-top">
-          <div class="testimonial-avatar" aria-hidden="true">${item.initials}</div>
+          <div class="testimonial-avatar-wrapper">
+            <img
+              class="testimonial-avatar-img"
+              src="${item.avatar}"
+              alt="${item.name}"
+              loading="lazy"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <div class="testimonial-avatar-fallback" style="display: none;">${item.initials}</div>
+          </div>
           <div class="testimonial-client-meta">
             <h4 class="testimonial-client-name">${item.name}</h4>
             <span class="testimonial-client-city">${item.city}</span>
@@ -93,64 +98,14 @@ export function initTestimonials() {
         <h2 class="testimonials-heading">WHAT OUR CLIENTS SAY</h2>
       </div>
 
-      <!-- Horizontal Drag-Scroll Carousel -->
-      <div class="testimonials-carousel-wrapper">
-        <div class="testimonials-carousel" id="testimonials-carousel" role="region" aria-label="Client testimonials slider">
+      <!-- 4 Testimonial Cards Grid (Side-by-Side on Desktop, Responsive Carousel on Mobile) -->
+      <div class="testimonials-grid-wrapper">
+        <div class="testimonials-grid" id="testimonials-grid" role="region" aria-label="Client testimonials">
           ${cardsHtml}
         </div>
       </div>
-
-      <!-- Disclaimer Below Carousel -->
-      <p class="testimonials-disclaimer">All reviews are unpaid and shared with permission</p>
     </div>
   `;
-
-  // Drag-to-scroll implementation
-  const carousel = document.getElementById('testimonials-carousel');
-  if (!carousel) return;
-
-  let isDown = false;
-  let startX = 0;
-  let scrollLeft = 0;
-  let hasMoved = false;
-
-  carousel.addEventListener('mousedown', (e) => {
-    isDown = true;
-    hasMoved = false;
-    carousel.classList.add('is-dragging');
-    carousel.style.scrollSnapType = 'none'; // Temporarily disable snap during active drag
-    startX = e.pageX - carousel.offsetLeft;
-    scrollLeft = carousel.scrollLeft;
-  });
-
-  const onMouseMove = (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - carousel.offsetLeft;
-    const walk = (x - startX) * 1.35;
-    if (Math.abs(walk) > 4) {
-      hasMoved = true;
-    }
-    carousel.scrollLeft = scrollLeft - walk;
-  };
-
-  const onMouseUp = () => {
-    if (!isDown) return;
-    isDown = false;
-    carousel.classList.remove('is-dragging');
-    carousel.style.scrollSnapType = 'x mandatory'; // Restore snap behavior
-  };
-
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
-
-  carousel.addEventListener('click', (e) => {
-    if (hasMoved) {
-      e.preventDefault();
-      e.stopPropagation();
-      hasMoved = false;
-    }
-  });
 
   // Staggered GSAP scroll entrance animation
   const cards = container.querySelectorAll('.testimonial-card');
@@ -162,7 +117,7 @@ export function initTestimonials() {
         opacity: 1,
         y: 0,
         duration: 0.6,
-        stagger: 0.1,
+        stagger: 0.12,
         ease: 'power2.out',
         scrollTrigger: {
           trigger: container,
