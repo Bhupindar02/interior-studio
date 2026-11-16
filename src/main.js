@@ -19,6 +19,7 @@ import { initMarquee } from './sections/marquee.js';
 import { initInstagram } from './sections/instagram.js';
 import { initCta } from './sections/cta.js';
 import { initFooter } from './sections/footer.js';
+import { initScrollReveal } from './utils/scrollReveal.js';
 
 /* ==========================================================================
    Loading Overlay Controller
@@ -34,25 +35,43 @@ function setupLoadingOverlay() {
     if (barFill) barFill.style.width = '100%';
     setTimeout(() => {
       overlay.classList.add('loaded');
-    }, 250);
+      ScrollTrigger.refresh();
+    }, 300);
   }
 
-  // Animate progress bar as Section 01 frames preload
-  window.addEventListener('canvas-frame-loaded', (e) => {
-    const { cloudFolder, loadedCount, totalFrames } = e.detail || {};
-    if (cloudFolder === 'frames1' && barFill && totalFrames) {
-      const percentage = Math.min(100, Math.round((loadedCount / totalFrames) * 100));
+  // Animate progress bar as Section 01 initial buffer preloads
+  window.addEventListener('hero-buffer-progress', (e) => {
+    const { percentage } = e.detail || {};
+    if (barFill && percentage !== undefined && !overlay.classList.contains('loaded')) {
       barFill.style.width = `${percentage}%`;
     }
   });
 
-  // Hide as soon as Section 01 first frame is ready
-  window.addEventListener('section1-first-frame-ready', () => {
+  window.addEventListener('canvas-frame-loaded', (e) => {
+    const { cloudFolder, loadedCount, totalFrames } = e.detail || {};
+    if (cloudFolder === 'frames1' && barFill && totalFrames && !overlay.classList.contains('loaded')) {
+      const percentage = Math.min(100, Math.round((loadedCount / totalFrames) * 100));
+      const currentWidth = parseFloat(barFill.style.width) || 0;
+      if (percentage > currentWidth) {
+        barFill.style.width = `${percentage}%`;
+      }
+    }
+  });
+
+  // Hide as soon as Section 01 critical buffer is ready for smooth scrubbing
+  window.addEventListener('hero-initial-buffer-ready', () => {
     hideOverlay();
   });
 
+  // Immediately reflect first frame ready
+  window.addEventListener('section1-first-frame-ready', () => {
+    if (barFill && (!barFill.style.width || parseFloat(barFill.style.width) < 20)) {
+      barFill.style.width = '20%';
+    }
+  });
+
   // Safety fallback timeout
-  setTimeout(hideOverlay, 2000);
+  setTimeout(hideOverlay, 3500);
 }
 
 /* ==========================================================================
@@ -96,6 +115,9 @@ function initApp() {
   initInstagram();
   initCta();
   initFooter();
+
+  // Initialize GPU-accelerated compositor-thread scroll reveals
+  initScrollReveal();
 
   // Refresh ScrollTrigger after DOM insertion
   requestAnimationFrame(() => {

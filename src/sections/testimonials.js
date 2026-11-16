@@ -1,12 +1,8 @@
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
-
 /**
  * Section 08: Client Testimonials
  * 4 luxury client review cards in a 4-column side-by-side grid on desktop,
  * with real photo avatars, gold star ratings, editorial italic quotes, and project tags.
+ * Entrance animation offloaded to compositor-thread scroll reveal.
  */
 export function initTestimonials() {
   const container = document.getElementById('testimonials');
@@ -62,7 +58,7 @@ export function initTestimonials() {
   const cardsHtml = testimonials
     .map(
       (item, index) => `
-      <article class="testimonial-card" data-index="${index}">
+      <article class="testimonial-card reveal-on-scroll" data-index="${index}" style="--reveal-delay: ${index * 0.12}s;">
         <div class="testimonial-card-top">
           <div class="testimonial-avatar-wrapper">
             <img
@@ -70,6 +66,7 @@ export function initTestimonials() {
               src="${item.avatar}"
               alt="${item.name}"
               loading="lazy"
+              decoding="async"
               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
             />
             <div class="testimonial-avatar-fallback" style="display: none;">${item.initials}</div>
@@ -106,25 +103,4 @@ export function initTestimonials() {
       </div>
     </div>
   `;
-
-  // Staggered GSAP scroll entrance animation
-  const cards = container.querySelectorAll('.testimonial-card');
-  if (cards.length > 0) {
-    gsap.fromTo(
-      cards,
-      { opacity: 0, y: 30 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.6,
-        stagger: 0.12,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: container,
-          start: 'top 75%',
-          once: true,
-        },
-      }
-    );
-  }
 }

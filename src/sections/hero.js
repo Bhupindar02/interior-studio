@@ -13,7 +13,7 @@ export function initHero() {
     <video
       class="hero-mobile-video"
       src="/video1.mp4"
-      poster="https://res.cloudinary.com/qk5wy6np/image/upload/f_auto,q_90/frames1_0001.jpg"
+      poster="https://pub-ed61ae6c7caa41dead326a99f4d0cd9e.r2.dev/frames1_0001.webp"
       autoplay
       muted
       loop
@@ -95,28 +95,28 @@ export function initHero() {
   setupHeroMode();
 
   // Update minimal loading bar progress
-  window.addEventListener('canvas-frame-loaded', (e) => {
-    const { cloudFolder, loadedCount, totalFrames, isFirstFrame } = e.detail || {};
-    if (cloudFolder === 'frames1') {
-      if (heroLoaderProgress && totalFrames) {
-        const pct = Math.min(100, Math.round((loadedCount / totalFrames) * 100));
-        heroLoaderProgress.style.width = `${pct}%`;
-      }
-      if (isFirstFrame) {
-        hideLoader();
-      }
+  window.addEventListener('hero-buffer-progress', (e) => {
+    const { percentage } = e.detail || {};
+    if (heroLoaderProgress && percentage !== undefined) {
+      heroLoaderProgress.style.width = `${percentage}%`;
     }
   });
 
-  // Immediately hide loader when Section 01 first frame is ready
-  window.addEventListener('section1-first-frame-ready', (e) => {
-    if (e.detail?.cloudFolder === 'frames1' || e.detail?.canvasId === 'hero-canvas') {
-      hideLoader();
+  window.addEventListener('canvas-frame-loaded', (e) => {
+    const { cloudFolder, loadedCount, totalFrames } = e.detail || {};
+    if (cloudFolder === 'frames1' && heroLoaderProgress && totalFrames) {
+      const pct = Math.min(100, Math.round((loadedCount / totalFrames) * 100));
+      heroLoaderProgress.style.width = `${pct}%`;
     }
+  });
+
+  // Hide loader once critical buffer is ready
+  window.addEventListener('hero-initial-buffer-ready', () => {
+    hideLoader();
   });
 
   // Safety fallback for loader
-  setTimeout(hideLoader, 2000);
+  setTimeout(hideLoader, 3500);
 
   // Fixed overlay text fades in when 'revealText' event fires (85% scroll progress)
   window.addEventListener('revealText', (e) => {
@@ -137,19 +137,8 @@ export function initHero() {
   });
 
   window.addEventListener('hero-scrolled-reset', () => {
-    if (scrollIndicator && !mobileQuery.matches) {
+    if (scrollIndicator && window.innerWidth >= 768) {
       scrollIndicator.classList.remove('hidden');
     }
   });
-
-  // Also listen to general scroll in case of page jump
-  window.addEventListener(
-    'scroll',
-    () => {
-      if (window.scrollY > 25 && scrollIndicator) {
-        scrollIndicator.classList.add('hidden');
-      }
-    },
-    { passive: true }
-  );
 }

@@ -1,19 +1,14 @@
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
-
 /**
  * Section 11: Book a Consultation CTA Section
  * Deep warm background with warm spotlight radial texture, centered content block,
- * primary & secondary buttons, and GSAP scale+fade entrance.
+ * primary & secondary buttons, with compositor-thread scroll reveal.
  */
 export function initCta() {
   const container = document.getElementById('cta');
   if (!container) return;
 
   container.innerHTML = `
-    <div class="cta-content-block">
+    <div class="cta-content-block reveal-on-scroll">
       <span class="cta-label">GET STARTED</span>
       <h2 class="cta-heading">READY TO TRANSFORM YOUR SPACE?</h2>
       <p class="cta-subtext">
@@ -30,27 +25,4 @@ export function initCta() {
       </div>
     </div>
   `;
-
-  // Animate in on scroll (ScrollTrigger start: 'top 70%'): opacity 0->1 + scale 0.96->1, 0.7s ease
-  const contentBlock = container.querySelector('.cta-content-block');
-  if (contentBlock) {
-    gsap.fromTo(
-      contentBlock,
-      {
-        opacity: 0,
-        scale: 0.96,
-      },
-      {
-        opacity: 1,
-        scale: 1,
-        duration: 0.7,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: container,
-          start: 'top 70%',
-          once: true,
-        },
-      }
-    );
-  }
 }

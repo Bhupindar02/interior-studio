@@ -1,8 +1,3 @@
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
-
 /**
  * Initializes Section 04: Services (4-Card Grid)
  */
@@ -65,8 +60,8 @@ export function initServices() {
 
   const cardsHtml = services
     .map(
-      (svc) => `
-    <div class="service-card">
+      (svc, index) => `
+    <div class="service-card reveal-on-scroll" style="--reveal-delay: ${index * 0.1}s;">
       <div class="service-icon-wrap">
         ${svc.icon}
       </div>
@@ -90,35 +85,4 @@ export function initServices() {
       </div>
     </div>
   `;
-
-  // Animate in cards on scroll: staggered GSAP fade-up
-  const cards = container.querySelectorAll('.service-card');
-  const grid = container.querySelector('.services-grid');
-
-  if (cards.length && grid) {
-    gsap.fromTo(
-      cards,
-      {
-        opacity: 0,
-        y: 30,
-      },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.6,
-        stagger: 0.12,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: grid,
-          start: 'top 80%',
-          toggleActions: 'play none none none',
-          once: true,
-        },
-        onComplete: () => {
-          // Clear transform so CSS hover transition operates smoothly
-          gsap.set(cards, { clearProps: 'transform' });
-        },
-      }
-    );
-  }
 }

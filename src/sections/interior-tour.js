@@ -13,7 +13,7 @@ export function initInteriorTour() {
     <video
       class="tour-mobile-video"
       src="/video2.mp4"
-      poster="https://res.cloudinary.com/qk5wy6np/image/upload/f_auto,q_90/frames2_0001.jpg"
+      poster="https://pub-54dc63ec84a74037ae5dea0b31af4f39.r2.dev/frames2_0001.webp"
       autoplay
       muted
       loop
@@ -76,10 +76,8 @@ export function initInteriorTour() {
     if (e.detail?.canvasId === 'tour-canvas' && portfolioLink) {
       if (e.detail.revealed) {
         portfolioLink.classList.add('revealed');
-        portfolioLink.classList.add('user-revealed');
       } else {
         portfolioLink.classList.remove('revealed');
-        portfolioLink.classList.remove('user-revealed');
       }
     }
   });

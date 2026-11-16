@@ -42,3 +42,16 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Agent scaffolding & local tooling
+.agent/
+.agents/
+.gemini/
+.gsd/
+adapters/
+scripts/
+model_capabilities.yaml
+PROJECT_RULES.md
+GSD-STYLE.md
+VERSION
+

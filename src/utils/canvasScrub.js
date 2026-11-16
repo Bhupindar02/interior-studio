@@ -3,20 +3,22 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const CLOUD_NAME = 'qk5wy6np';
+const R2_ENDPOINTS = {
+  frames1: 'https://pub-ed61ae6c7caa41dead326a99f4d0cd9e.r2.dev',
+  frames2: 'https://pub-54dc63ec84a74037ae5dea0b31af4f39.r2.dev',
+};
 
 /**
- * Builds an optimized Cloudinary frame URL for a given folder and frame index.
- * Uses mobile/desktop responsive transformations:
- * - Mobile (<768px): f_auto,q_auto,w_640 (~20-30KB per frame, light memory footprint)
- * - Desktop (>=768px): f_auto,q_90,w_1280 (~40-60KB per frame, high fidelity)
+ * Builds the Cloudflare R2 frame URL for a given folder and frame index.
+ * Uses .webp frames:
+ * - frames1: https://pub-ed61ae6c7caa41dead326a99f4d0cd9e.r2.dev/frames1_0001.webp -> frames1_0299.webp
+ * - frames2: https://pub-54dc63ec84a74037ae5dea0b31af4f39.r2.dev/frames2_0001.webp -> frames2_0299.webp
  *
- * @param {string|function} folder - Folder name or URL builder function
- * @param {number} frameIndex - Zero-based frame index
- * @param {string} [transform] - Optional explicit Cloudinary transformation string
+ * @param {string|function} folder - Folder identifier ('frames1' or 'frames2')
+ * @param {number} frameIndex - Zero-based frame index (0..298)
  * @returns {string} URL to the frame image
  */
-export function getFrameURL(folder, frameIndex, transform) {
+export function getFrameURL(folder, frameIndex) {
   if (typeof folder === 'function') {
     return folder(frameIndex);
   }
@@ -26,15 +28,12 @@ export function getFrameURL(folder, frameIndex, transform) {
 
   if (folder.startsWith('http://') || folder.startsWith('https://')) {
     const cleanUrl = folder.replace(/\/$/, '');
-    return `${cleanUrl}/frame_${paddedIndex}.jpg`;
+    return `${cleanUrl}/${paddedIndex}.webp`;
   }
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const currentTransform =
-    transform || (isMobile ? 'f_auto,q_auto,w_640' : 'f_auto,q_90,w_1280');
-
+  const baseUrl = R2_ENDPOINTS[folder] || R2_ENDPOINTS.frames1;
   const cleanFolder = folder.replace(/_+$/, '');
-  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${currentTransform}/${cleanFolder}_${paddedIndex}.jpg`;
+  return `${baseUrl}/${cleanFolder}_${paddedIndex}.webp`;
 }
 
 /**
@@ -52,7 +51,7 @@ export function getFrameURL(folder, frameIndex, transform) {
  *   canvas.width = window.innerWidth * dpr, canvas.height = window.innerHeight * dpr, ctx.scale(dpr, dpr)
  *
  * @param {Object} options
- * @param {string} options.cloudFolder - Cloudinary folder name ('frames1' or 'frames2')
+ * @param {string} options.cloudFolder - Frame folder name ('frames1' or 'frames2')
  * @param {string} options.canvasId - ID of canvas element
  * @param {number} [options.totalFrames=299] - Total frames in sequence
  * @param {string|number} [options.pinDistance='+=1794px'] - Scroll distance to pin section
@@ -76,10 +75,9 @@ export function initCanvasScrub({
   const section = canvas.closest('section') || canvas.parentElement;
   const container = section || canvas.parentElement || canvas;
 
-  // Change 3 — Mobile frame count cap & Cloudinary transform:
+  // Change 3 — Mobile frame count cap:
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const EFFECTIVE_FRAMES = isMobile ? Math.min(totalFrames, 150) : totalFrames;
-  const CLOUD_TRANSFORM = isMobile ? 'f_auto,q_auto,w_640' : 'f_auto,q_90,w_1280';
 
   let currentFrameIndex = 0;
   let lastRenderedIndex = -1;
@@ -87,8 +85,8 @@ export function initCanvasScrub({
   let hasScrolled = false;
   let isDestroyed = false;
 
-  // Map effective index (0..EFFECTIVE_FRAMES-1) to full Cloudinary asset sequence (0..totalFrames-1)
-  function getCloudinaryIndex(index) {
+  // Map effective index (0..EFFECTIVE_FRAMES-1) to full Cloudflare R2 asset sequence (0..totalFrames-1)
+  function getAssetIndex(index) {
     if (!isMobile || totalFrames <= EFFECTIVE_FRAMES) {
       return index;
     }
@@ -156,7 +154,7 @@ export function initCanvasScrub({
    * Draws the frame with object-fit: cover math.
    * Leverages the scaled coordinate system established by ctx.scale(dpr, dpr).
    */
-  function renderFrame(index) {
+  function renderFrame(index, force = false) {
     if (!canvas || !ctx || isDestroyed) return;
 
     const imgToDraw = getNearestLoadedImage(index);
@@ -164,7 +162,7 @@ export function initCanvasScrub({
 
     const actualIndex = imgToDraw._frameIndex ?? index;
 
-    if (actualIndex === lastRenderedIndex && index !== actualIndex) {
+    if (!force && actualIndex === lastRenderedIndex) {
       return;
     }
 
@@ -206,7 +204,6 @@ export function initCanvasScrub({
 
     const promise = new Promise((resolve) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
       img._frameIndex = index;
 
       img.onload = () => {
@@ -245,8 +242,8 @@ export function initCanvasScrub({
         resolve(null);
       };
 
-      const cloudinaryIndex = getCloudinaryIndex(index);
-      img.src = getFrameURL(cloudFolder, cloudinaryIndex, CLOUD_TRANSFORM);
+      const assetIndex = getAssetIndex(index);
+      img.src = getFrameURL(cloudFolder, assetIndex);
     });
 
     loadingPromises.set(index, promise);
@@ -255,9 +252,10 @@ export function initCanvasScrub({
 
   /**
    * 3-Phase Progressive Preloader using EFFECTIVE_FRAMES
+   * Guarantees that critical frames load before user scroll
    */
   async function startProgressivePreload() {
-    // Phase 1 — Instant Boot (~0.2s):
+    // Phase 1 — Instant Boot Frame 0:
     await loadSingleFrame(0);
     renderFrame(0);
 
@@ -267,28 +265,64 @@ export function initCanvasScrub({
       })
     );
 
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay && !overlay.classList.contains('loaded')) {
-      overlay.classList.add('loaded');
+    // Phase 2 — Critical Buffer & Keyframe Strides:
+    // Preload initial 12 frames (1..12) and keyframe strides across timeline (every 15th frame)
+    const bufferFrames = [];
+    const initialBufferLimit = Math.min(12, EFFECTIVE_FRAMES);
+    for (let i = 1; i < initialBufferLimit; i++) {
+      bufferFrames.push(i);
     }
 
-    // Phase 2 — Keyframe Striding (~1.0s):
     const keyframes = [];
-    for (let i = 5; i < EFFECTIVE_FRAMES; i += 5) {
+    for (let i = initialBufferLimit; i < EFFECTIVE_FRAMES; i += 15) {
       keyframes.push(i);
     }
     if (keyframes[keyframes.length - 1] !== EFFECTIVE_FRAMES - 1) {
       keyframes.push(EFFECTIVE_FRAMES - 1);
     }
 
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < keyframes.length; i += BATCH_SIZE) {
+    const criticalBatch = [...bufferFrames, ...keyframes];
+    let loadedCriticalCount = 0;
+
+    // Load critical buffer in concurrent batches of 8
+    const BATCH_SIZE = 8;
+    for (let i = 0; i < criticalBatch.length; i += BATCH_SIZE) {
       if (isDestroyed) return;
-      const batch = keyframes.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map((idx) => loadSingleFrame(idx)));
+      const batch = criticalBatch.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (idx) => {
+          await loadSingleFrame(idx);
+          loadedCriticalCount += 1;
+          if (cloudFolder === 'frames1') {
+            const pct = Math.min(
+              100,
+              Math.round(((loadedCriticalCount + 1) / (criticalBatch.length + 1)) * 100)
+            );
+            window.dispatchEvent(
+              new CustomEvent('hero-buffer-progress', {
+                detail: {
+                  percentage: pct,
+                  loaded: loadedCriticalCount + 1,
+                  total: criticalBatch.length + 1,
+                },
+              })
+            );
+          }
+        })
+      );
+    }
+
+    // Critical buffer is fully loaded and ready for smooth scrubbing!
+    if (cloudFolder === 'frames1') {
+      window.dispatchEvent(
+        new CustomEvent('hero-initial-buffer-ready', {
+          detail: { canvasId, cloudFolder },
+        })
+      );
     }
 
     // Phase 3 — Background Fill:
+    // Fill all remaining intermediate frames silently via requestIdleCallback
     const remainingIndices = [];
     for (let i = 1; i < EFFECTIVE_FRAMES; i++) {
       if (!loadedIndices.has(i) && !loadingPromises.has(i)) {
@@ -337,7 +371,7 @@ export function initCanvasScrub({
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
     ctx.scale(dpr, dpr);
-    renderFrame(currentFrameIndex);
+    renderFrame(currentFrameIndex, true);
   }
 
   window.addEventListener('resize', resizeCanvas);
@@ -418,49 +452,15 @@ export function initCanvasScrub({
     },
   });
 
-  /**
-   * onScroll handler to immediately recalculate and update frames
-   */
-  function onScroll() {
-    if (trigger && !isDestroyed) {
-      trigger.update();
-      updateFromProgress(trigger.progress);
-    }
-  }
-
-  // Change 1 — Passive scroll listener:
-  window.addEventListener('scroll', onScroll, { passive: true });
-
-  // Change 2 — Touch event support:
-  // Add to the canvas container element (not window):
-  let lastTouchY = 0;
-  container.addEventListener(
-    'touchstart',
-    (e) => {
-      lastTouchY = e.touches[0].clientY;
-    },
-    { passive: true }
-  );
-
-  container.addEventListener(
-    'touchmove',
-    () => {
-      onScroll();
-    },
-    { passive: true }
-  );
-
   return {
     canvas,
     images,
     trigger,
     getNearestLoadedImage,
-    onScroll,
     destroy() {
       isDestroyed = true;
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('orientationchange', resizeCanvas);
-      window.removeEventListener('scroll', onScroll);
       trigger.kill();
     },
   };

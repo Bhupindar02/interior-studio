@@ -63,6 +63,7 @@ export function initInstagram() {
           alt="${tile.label} - Aura Studio Interior Architecture"
           class="insta-tile-img"
           loading="lazy"
+          decoding="async"
         />
         <div class="insta-overlay">
           ${instagramIconSvg}

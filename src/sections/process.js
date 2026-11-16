@@ -1,12 +1,7 @@
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
-
 /**
  * Section 07: The Process (4-Step How We Work)
  * Charcoal background, gold connecting line, numbered step circles,
- * staggered GSAP scroll entrance.
+ * hardware-accelerated compositor-thread scroll reveal.
  */
 export function initProcess() {
   const container = document.getElementById('process');
@@ -38,7 +33,7 @@ export function initProcess() {
   const stepsHtml = steps
     .map(
       (step, index) => `
-      <div class="process-step" data-step="${index + 1}">
+      <div class="process-step reveal-on-scroll" data-step="${index + 1}" style="--reveal-delay: ${index * 0.12}s;">
         <div class="process-num-circle">
           <span class="process-num-text">${step.num}</span>
         </div>
@@ -63,28 +58,4 @@ export function initProcess() {
       </div>
     </div>
   `;
-
-  // Staggered GSAP ScrollTrigger entrance: opacity 0->1 + translateX -20px->0
-  const stepElements = container.querySelectorAll('.process-step');
-  if (stepElements.length > 0) {
-    gsap.fromTo(
-      stepElements,
-      {
-        opacity: 0,
-        x: -20,
-      },
-      {
-        opacity: 1,
-        x: 0,
-        duration: 0.6,
-        stagger: 0.12,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: container,
-          start: 'top 75%',
-          once: true,
-        },
-      }
-    );
-  }
 }

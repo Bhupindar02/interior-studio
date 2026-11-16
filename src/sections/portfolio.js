@@ -1,12 +1,7 @@
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
-
 /**
  * Section 06: Selected Works Portfolio Section
  * Horizontal scroll gallery with custom drag-to-scroll, card hover reveals,
- * and category tags.
+ * category tags, and compositor-thread scroll reveal.
  */
 export function initPortfolio() {
   const container = document.getElementById('portfolio');
@@ -60,13 +55,14 @@ export function initPortfolio() {
   const cardsHtml = projects
     .map(
       (project, index) => `
-      <article class="portfolio-card" data-index="${index}">
+      <article class="portfolio-card reveal-on-scroll" data-index="${index}" style="--reveal-delay: ${index * 0.08}s;">
         <div class="portfolio-img-wrap">
           <img
             src="${project.image}"
             alt="${project.name} - ${project.category} Architecture and Interior Design"
             class="portfolio-img"
             loading="lazy"
+            decoding="async"
           />
           <div class="portfolio-img-overlay">
             <span class="portfolio-hover-cta">View Project &rarr;</span>
@@ -111,18 +107,8 @@ export function initPortfolio() {
   let hasMoved = false;
 
   // Mouse drag handlers
-  gallery.addEventListener('mousedown', (e) => {
-    isDown = true;
-    hasMoved = false;
-    gallery.classList.add('is-dragging');
-    gallery.style.scrollSnapType = 'none'; // Temporarily disable snap during active drag for smooth response
-    startX = e.pageX - gallery.offsetLeft;
-    scrollLeft = gallery.scrollLeft;
-  });
-
   const onMouseMove = (e) => {
     if (!isDown) return;
-    e.preventDefault();
     const x = e.pageX - gallery.offsetLeft;
     const walk = (x - startX) * 1.35; // Responsive scroll factor
     if (Math.abs(walk) > 4) {
@@ -132,15 +118,23 @@ export function initPortfolio() {
   };
 
   const onMouseUp = () => {
-    if (!isDown) return;
     isDown = false;
     gallery.classList.remove('is-dragging');
-    // Restore snap behavior on release
-    gallery.style.scrollSnapType = 'x mandatory';
+    gallery.style.scrollSnapType = 'x mandatory'; // Restore snap behavior on release
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
   };
 
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
+  gallery.addEventListener('mousedown', (e) => {
+    isDown = true;
+    hasMoved = false;
+    gallery.classList.add('is-dragging');
+    gallery.style.scrollSnapType = 'none'; // Temporarily disable snap during active drag
+    startX = e.pageX - gallery.offsetLeft;
+    scrollLeft = gallery.scrollLeft;
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
 
   // Prevent click triggering if user was dragging
   gallery.addEventListener('click', (e) => {
@@ -150,25 +144,4 @@ export function initPortfolio() {
       hasMoved = false;
     }
   });
-
-  // GSAP scroll trigger for staggered card entrance
-  const cards = container.querySelectorAll('.portfolio-card');
-  if (cards.length > 0) {
-    gsap.fromTo(
-      cards,
-      { opacity: 0, y: 35 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.7,
-        stagger: 0.1,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: container,
-          start: 'top 75%',
-          once: true,
-        },
-      }
-    );
-  }
 }
