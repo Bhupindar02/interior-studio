@@ -77,7 +77,7 @@ export function initHero() {
     }
   }
 
-  // Initialize canvas scroll scrub on all devices (mobile-optimized with DPR scaling and 150-frame cap)
+  // Initialize canvas scroll scrub on all devices (mobile-optimized with DPR capped to 1.5 and 80-frame cap)
   let scrubInstance = null;
 
   function setupHeroMode() {

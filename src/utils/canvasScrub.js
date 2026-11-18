@@ -43,11 +43,11 @@ export function getFrameURL(folder, frameIndex) {
  *   window.addEventListener('scroll', onScroll, { passive: true })
  * Change 2 — Touch event support on container:
  *   container.addEventListener('touchstart', ...), container.addEventListener('touchmove', ...)
- * Change 3 — Mobile frame count cap & transform:
+ * Change 3 — Mobile frame count cap:
  *   const isMobile = window.innerWidth < 768
- *   const EFFECTIVE_FRAMES = isMobile ? Math.min(totalFrames, 150) : totalFrames
- *   const CLOUD_TRANSFORM = isMobile ? 'f_auto,q_auto,w_640' : 'f_auto,q_90,w_1280'
- * Change 4 — Canvas resize with devicePixelRatio:
+ *   const EFFECTIVE_FRAMES = isMobile ? Math.min(totalFrames, 80) : totalFrames
+ * Change 4 — Canvas resize with devicePixelRatio (capped to 1.5 on mobile):
+ *   const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : (window.devicePixelRatio || 1)
  *   canvas.width = window.innerWidth * dpr, canvas.height = window.innerHeight * dpr, ctx.scale(dpr, dpr)
  *
  * @param {Object} options
@@ -77,7 +77,7 @@ export function initCanvasScrub({
 
   // Change 3 — Mobile frame count cap:
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const EFFECTIVE_FRAMES = isMobile ? Math.min(totalFrames, 150) : totalFrames;
+  const EFFECTIVE_FRAMES = isMobile ? Math.min(totalFrames, 80) : totalFrames;
 
   let currentFrameIndex = 0;
   let lastRenderedIndex = -1;
@@ -362,10 +362,12 @@ export function initCanvasScrub({
 
   startProgressivePreload();
 
-  // Change 4 — Canvas resize with devicePixelRatio:
+  // Change 4 — Canvas resize with devicePixelRatio (capped to 1.5 on mobile):
   function resizeCanvas() {
     if (!canvas || !ctx || isDestroyed) return;
-    const dpr = window.devicePixelRatio || 1;
+    const isMobileNow = typeof window !== 'undefined' && window.innerWidth < 768;
+    const rawDpr = window.devicePixelRatio || 1;
+    const dpr = isMobileNow ? Math.min(rawDpr, 1.5) : rawDpr;
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
     canvas.style.width = `${window.innerWidth}px`;
